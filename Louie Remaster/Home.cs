@@ -26,6 +26,7 @@ namespace Louie_Remaster
         CommandService _commands;
         IServiceProvider _services;
         sqlConnector _sql;
+        ulong _guildID = 335284078796603392;
 
         public Home()
         {
@@ -139,6 +140,29 @@ namespace Louie_Remaster
                 Emote emote = Emote.Parse("<:smokeyfish:481276964850892821>");
                 await usermsg.AddReactionAsync(emote);
             }
+        }
+
+        private void btnReloadDatabase_Click(object sender, EventArgs e)
+        {
+            List<SocketGuildUser> userList = GetUserList();
+            List<SocketGuildChannel> channelList = GetChannelList();
+
+            var users = _sql.GetDataTable("SELECT id, username FROM allUsers");
+            var channels = _sql.GetDataTable("SELECT * FROM channelCount");
+        }
+
+        private List<SocketGuildUser> GetUserList()
+        {
+            var _socket = _client.GetGuild(_guildID);
+            List<SocketGuildUser> userList = _socket.Users.ToList();
+            return userList;
+        }
+
+        private List<SocketGuildChannel> GetChannelList()
+        {
+            var _socket = _client.GetGuild(_guildID);
+            List<SocketGuildChannel> channelList = _socket.Channels.ToList();
+            return channelList;
         }
     }
 }

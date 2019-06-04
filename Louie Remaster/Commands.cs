@@ -51,8 +51,8 @@ namespace Louie_Remaster
         public async Task MessageCount()
         {
             sql.Setup();
-            string userMsgCount = sql.GetSingleValue($"SELECT msgCount FROM users WHERE id = '{Context.Message.Author.Id}'");
-            string guildMessageCount = sql.GetSingleValue("SELECT msgCount FROM stats WHERE id = 'gves'");
+            string userMsgCount = sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id = '{Context.Message.Author.Id}'");
+            string guildMessageCount = sql.GetSingleValue("SELECT messageCount FROM stats");
 
             await ReplyAsync("There are currently **" + (int.Parse(guildMessageCount) + 1) + "** messages in this discord!" + Environment.NewLine + Environment.NewLine + "<@" + Context.Message.Author.Id.ToString() + "> has sent **" + userMsgCount + "** messages in this discord!");
         }
@@ -92,10 +92,10 @@ namespace Louie_Remaster
             sql.Setup();
             string msgString = "";
             string id = Context.Message.Author.Id.ToString();
-            string username = sql.GetSingleValue($"SELECT username FROM users WHERE id = '{id}'");
-            string joinedAt = sql.GetSingleValue($"SELECT joinedAt FROM users WHERE id = '{id}'");
-            string createdAt = sql.GetSingleValue($"SELECT createdAt FROM users WHERE id = '{id}'");
-            string msgCount = sql.GetSingleValue($"SELECT msgCount FROM users WHERE id = '{id}'");
+            string username = sql.GetSingleValue($"SELECT username FROM allUsers WHERE id = '{id}'");
+            string joinedAt = sql.GetSingleValue($"SELECT joinedAt FROM allUsers WHERE id = '{id}'");
+            string createdAt = sql.GetSingleValue($"SELECT createdAt FROM allUsers WHERE id = '{id}'");
+            string msgCount = sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id = '{id}'");
 
             msgString += "**Nickname: **" + username + Environment.NewLine;
             msgString += "**Joined Server: **" + joinedAt + Environment.NewLine;
