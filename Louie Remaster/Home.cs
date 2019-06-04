@@ -52,7 +52,7 @@ namespace Louie_Remaster
 
             _sql.Setup();
 
-            var botToken = File.ReadAllText("token.txt");
+            var botToken = File.ReadAllText("Token.txt");
 
             _client.Log += Log;
 

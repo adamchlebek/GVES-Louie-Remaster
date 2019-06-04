@@ -39,7 +39,7 @@ namespace Louie_Remaster
 
         public void Setup()
         {
-            var password = File.ReadAllText("DatabaseInfo.txt");
+            var password = File.ReadAllText("Database.txt");
             this.Setup("den1.mssql2.gear.host", "discordcount", "discordcount", password);
         }
 
