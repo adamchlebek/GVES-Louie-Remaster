@@ -7,7 +7,7 @@ This is a discord bot created for Grand Valley's ESport's discord server.
 
 ## Getting Started
 
-If you would like to run this server on your own PC, you will need to create a bot token of your own. Just google how to do that.
+If you would like to run this server on your own PC, you will need to create a bot token of your own. Just google how to do that. You also need to open up the project and build it. You may need to add the files below to the Debug folder.
 
 ```
 Create File Named Token.txt and add your bot token to the file.
