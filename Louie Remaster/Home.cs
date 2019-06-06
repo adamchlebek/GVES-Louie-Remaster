@@ -77,7 +77,9 @@ namespace Louie_Remaster
 
         Task Log(string log)
         {
-            txtOutput.AppendText(log + Environment.NewLine);
+            string curdatetime = DateTime.Now.ToString("HH:mm:ss");
+
+            txtOutput.AppendText(curdatetime + " " + log + Environment.NewLine);
 
             return Task.CompletedTask;
         }
@@ -147,8 +149,108 @@ namespace Louie_Remaster
             List<SocketGuildUser> userList = GetUserList();
             List<SocketGuildChannel> channelList = GetChannelList();
 
-            var users = _sql.GetDataTable("SELECT id, username FROM allUsers");
+            DataTable users = _sql.GetDataTable("SELECT id, username FROM allUsers");
             var channels = _sql.GetDataTable("SELECT * FROM channelCount");
+
+            //User List
+
+            List<String> guildUsers = new List<string>();
+            List<String> sqlUsers = new List<string>();
+            List<String> addID = new List<string>();
+
+            int userAddedCount = 0;
+
+            foreach (SocketGuildUser user in userList)
+            {
+                guildUsers.Add(user.Id.ToString());
+            }
+
+            foreach (DataRow dataRow in users.Rows)
+            {
+                sqlUsers.Add(dataRow["id"].ToString());
+            }
+
+            if (!guildUsers.Count.Equals(sqlUsers.Count)){
+                foreach (string id in guildUsers)
+                {
+                    if (!sqlUsers.Contains(id))
+                    {
+                        addID.Add(id);
+                    }
+                }
+            }
+
+            foreach (string id in addID)
+            {
+                foreach (SocketGuildUser user in userList)
+                {
+                    if (id.Contains(user.Id.ToString()))
+                    {
+                        userAddedCount += 1;
+
+                        DateTime join = DateTime.Parse(user.JoinedAt.ToString());
+                        DateTime create = DateTime.Parse(user.CreatedAt.ToString());
+
+                        string joinString = $"{join.Year}-{join.Month}-{join.Day} {join.Hour}:{join.Minute}:{join.Second}";
+                        string createString = $"{create.Year}-{create.Month}-{create.Day} {create.Hour}:{create.Minute}:{create.Second}";
+
+
+                        try
+                        {
+                            _sql.Execute($"EXEC addUser @id='{user.Id}', @username='{RemoveQuotes(user.Username)}', @nickname='{RemoveQuotes(user.Username)}', @discriminator='{user.Discriminator}', @joinedAt='{joinString}', @createdAt='{createString}'");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message);
+                            _sql.Close();
+                        }
+                    }
+                }
+            }
+
+            Log($"{userAddedCount} users were reloaded to the database.");
+
+            //Channel List
+
+            int channelUpdatedCount = 0;
+
+            List<SocketGuildChannel> valid = new List<SocketGuildChannel>();
+
+            foreach (SocketGuildChannel chan in channelList)
+            {
+                var chanId = chan.Id;
+                bool found = false;
+
+                foreach (DataRow row in channels.Rows)
+                {
+                    if (row["chanID"].ToString().Trim() == chanId.ToString())
+                    {
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    valid.Add(chan);
+                }
+            }
+
+            foreach (SocketGuildChannel channel in valid)
+            {
+                bool changed = false;
+
+                foreach (DataRow row in channels.Rows)
+                {
+                    if (row["channelName"].ToString() == "New Channel" && row["chanID"].ToString() == channel.Id.ToString() && !changed)
+                    {
+                        channelUpdatedCount += 1;
+                        _sql.Execute($"UPDATE channelCount SET channelName = '{channel.Name}' WHERE chanID LIKE '%{channel.Id}%'");
+                        changed = true;
+                    }
+                }
+            }
+
+            Log($"{channelUpdatedCount} channels were updated in the database.");
         }
 
         private List<SocketGuildUser> GetUserList()
@@ -163,6 +265,17 @@ namespace Louie_Remaster
             var _socket = _client.GetGuild(_guildID);
             List<SocketGuildChannel> channelList = _socket.Channels.ToList();
             return channelList;
+        }
+
+        public string RemoveQuotes(string val)
+        {
+            return val.Replace("'", "");
+        }
+
+        private void btnSendSetGame_Click(object sender, EventArgs e)
+        {
+            string str = "";
+            DataTable data = _sql.GetDataTable("SELECT role FROM roleList");
         }
     }
 }
