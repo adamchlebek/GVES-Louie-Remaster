@@ -165,10 +165,7 @@ namespace Louie_Remaster
             if (message is null) return;
 
             //All Checks
-
-            //Add Message Here
-                //Add To User, To Total, and to Channel
-
+            
             int argPos = 0;
 
             string curdatetime = DateTime.Now.ToString("HH:mm:ss");
@@ -177,6 +174,40 @@ namespace Louie_Remaster
             if (arg.Author.Username.Contains("Dyno#3861"))
             {
                 //See What User Send The Message
+                Embed msg = arg.Embeds.FirstOrDefault();
+                string description = msg.Description;
+
+                if (description.Contains(("sent by")))
+                {
+                    string id = description.Substring(description.IndexOf("<") + 2, 
+                        description.IndexOf(">") - description.IndexOf("<") - 2);
+                    int firstIndex = description.IndexOf("<") + 1;
+                    int secondIndex = description.IndexOf(">") + 1;
+                    string chanId = description.Substring(description.IndexOf("<", firstIndex) + 2,
+                        (description.IndexOf(">", secondIndex) - 2) - (description.IndexOf("<", firstIndex) + 2) + 2);
+
+                    try
+                    {
+                        int curMessageCount =
+                            int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id='{id}'"));
+                        _sql.Execute($"EXEC addMessage @id='{id}', @msgCount = '{curMessageCount - 1}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        await Log(ex.Message);
+                    }
+
+
+                    try
+                    {
+                        int curMessageCount = int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM channelCount WHERE chanID LIKE '{chanId}'"));
+                        _sql.Execute($"UPDATE channelCount SET msgCount = '{curMessageCount - 1}' WHERE chanID LIKE '{chanId}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        await Log(ex.Message);
+                    }
+                }
             }
             
             //Delete Messages in Stream Channel
@@ -212,6 +243,16 @@ namespace Louie_Remaster
                 }
 
             }
+
+            //Add Message Here
+            int curCount = int.Parse(_sql.GetSingleValue("SELECT messageCount FROM stats"));
+            _sql.Execute($"UPDATE stats SET messageCount = {curCount + 1}");
+
+            int userMessageCount = int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id='{arg.Id}'"));
+            _sql.Execute($"EXEC addMessage @id='{arg.Id}', @msgCount = '{userMessageCount + 1}'");
+
+            int channelMessageCount = int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM channelCount WHERE chanID LIKE '{arg.Channel.Id}'"));
+            _sql.Execute($"UPDATE channelCount SET msgCount = '{channelMessageCount + 1}' WHERE chanID LIKE '{arg.Channel.Id}'");
         }
 
         private void btnReloadDatabase_Click(object sender, EventArgs e)
