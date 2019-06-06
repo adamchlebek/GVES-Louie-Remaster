@@ -72,6 +72,7 @@ namespace Louie_Remaster
             }
             catch
             {
+                sql.Close();
                 await ReplyAsync("Stream not linked to account. Message SmokeyFish to get this setup!");
             }
 

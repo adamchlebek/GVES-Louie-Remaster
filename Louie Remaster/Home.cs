@@ -17,6 +17,7 @@ using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Configuration;
+using System.Globalization;
 
 namespace Louie_Remaster
 {
@@ -67,16 +68,18 @@ namespace Louie_Remaster
             _client.MessageDeleted += _client_MessageDeleted;
             _client.UserJoined += _client_UserJoined;
             _client.UserLeft += _client_UserLeft;
-
+            
             Task.Delay(-1);
 
             return Task.CompletedTask;
         }
-
+        
         private Task _client_UserLeft(SocketGuildUser arg)
         {
             _sql.Execute($"EXEC removeUser @id='{arg.Id}'");
             _client.GetGuild(_guildID).GetTextChannel(502913561094389770).SendMessageAsync($"**{arg.Username}** has left the discord at {DateTime.Now}.");
+
+            _sql.Close();
 
             return Task.CompletedTask;
         }
@@ -113,8 +116,15 @@ namespace Louie_Remaster
         {
             int msgCount = int.Parse(_sql.GetSingleValue("SELECT messageCount FROM stats"));
 
-            _sql.Execute($"UPDATE stats SET messageCount = {msgCount - 1}");
-            
+            try
+            {
+                _sql.Execute($"UPDATE stats SET messageCount = {msgCount - 1}");
+            }
+            catch
+            {
+                _sql.Close();
+            }
+
             return Task.CompletedTask;
         }
 
@@ -122,7 +132,8 @@ namespace Louie_Remaster
         {
             if (arg1.Status == UserStatus.Online || arg1.Status == UserStatus.Idle && arg2.Status == UserStatus.Offline)
             {
-                DateTime now = DateTime.Now;
+
+                string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
                 _sql.Execute($"EXEC addOfflineTime @time='{now}', @id='{arg1.Id}'");
             }
@@ -194,6 +205,7 @@ namespace Louie_Remaster
                     }
                     catch (Exception ex)
                     {
+                        _sql.Close();
                         await Log(ex.Message);
                     }
 
@@ -205,6 +217,7 @@ namespace Louie_Remaster
                     }
                     catch (Exception ex)
                     {
+                        _sql.Close();
                         await Log(ex.Message);
                     }
                 }
@@ -245,14 +258,27 @@ namespace Louie_Remaster
             }
 
             //Add Message Here
-            int curCount = int.Parse(_sql.GetSingleValue("SELECT messageCount FROM stats"));
-            _sql.Execute($"UPDATE stats SET messageCount = {curCount + 1}");
+            try
+            {
+                int curCount = int.Parse(_sql.GetSingleValue("SELECT messageCount FROM stats"));
+                _sql.Execute($"UPDATE stats SET messageCount = {curCount + 1}");
 
-            int userMessageCount = int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id='{arg.Id}'"));
-            _sql.Execute($"EXEC addMessage @id='{arg.Id}', @msgCount = '{userMessageCount + 1}'");
+                int userMessageCount =
+                    int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM allUsers WHERE id='{arg.Author.Id}'"));
+                _sql.Execute($"EXEC addMessage @id='{arg.Author.Id}', @msgCount = '{userMessageCount + 1}'");
 
-            int channelMessageCount = int.Parse(_sql.GetSingleValue($"SELECT msgCount FROM channelCount WHERE chanID LIKE '{arg.Channel.Id}'"));
-            _sql.Execute($"UPDATE channelCount SET msgCount = '{channelMessageCount + 1}' WHERE chanID LIKE '{arg.Channel.Id}'");
+                int channelMessageCount =
+                    int.Parse(_sql.GetSingleValue(
+                        $"SELECT msgCount FROM channelCount WHERE chanID LIKE '{arg.Channel.Id}'"));
+                _sql.Execute(
+                    $"UPDATE channelCount SET msgCount = '{channelMessageCount + 1}' WHERE chanID LIKE '{arg.Channel.Id}'");
+            }
+            catch (Exception ex)
+            {
+                await Log(ex.Message);
+                _sql.Close();
+            }
+
         }
 
         private void btnReloadDatabase_Click(object sender, EventArgs e)
