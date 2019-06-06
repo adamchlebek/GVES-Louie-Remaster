@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -110,20 +111,20 @@ namespace Louie_Remaster
         [Summary("Sets a new role to the user")]
         public async Task SetRole([Remainder] string game)
         {
-            if (Context.Message.Content.Contains("set"))
+            if (Context.Message.Content.Contains("set") && Context.Channel.Id == 537454782110236682)
             {
                 sql.Setup();
 
-                SocketGuildUser user = (Context.Client.GetUser(Context.User.Username, Context.User.Discriminator) as SocketGuildUser);
+                SocketGuildUser user = Context.Guild.GetUser(Context.User.Id) as SocketGuildUser;
 
                 await Context.Message.DeleteAsync();
 
                 try
                 {
                     string roleID = sql.GetSingleValue($"SELECT roleID FROM roleList WHERE role='{game.ToUpper()}'");
-                    var role = user.Guild.GetRole(ulong.Parse(roleID));
+                    var role = Context.Guild.GetRole(ulong.Parse(roleID));
 
-                    IReadOnlyCollection<SocketRole> roleList;
+                    IReadOnlyCollection<SocketRole> roleList = new List<SocketRole>();
                     List<string> userRoleList = new List<string>();
 
                     roleList = user.Roles;
@@ -162,6 +163,7 @@ namespace Louie_Remaster
             }
             else
             {
+                await Context.Channel.SendMessageAsync("Set game in <#537454782110236682>");
                 await Context.Message.DeleteAsync();
             }
         }

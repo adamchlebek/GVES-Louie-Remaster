@@ -58,10 +58,78 @@ namespace Louie_Remaster
             _client.Log += Log;
 
             RegisterCommandsAsync();
+
             _client.LoginAsync(TokenType.Bot, botToken);
             _client.StartAsync();
 
+            //Add Events
+            _client.GuildMemberUpdated += _client_GuildMemberUpdated;
+            _client.MessageDeleted += _client_MessageDeleted;
+            _client.UserJoined += _client_UserJoined;
+            _client.UserLeft += _client_UserLeft;
+
             Task.Delay(-1);
+
+            return Task.CompletedTask;
+        }
+
+        private Task _client_UserLeft(SocketGuildUser arg)
+        {
+            _sql.Execute($"EXEC removeUser @id='{arg.Id}'");
+            _client.GetGuild(_guildID).GetTextChannel(502913561094389770).SendMessageAsync($"**{arg.Username}** has left the discord at {DateTime.Now}.");
+
+            return Task.CompletedTask;
+        }
+
+        private Task _client_UserJoined(SocketGuildUser arg)
+        {
+            string msg = $"Hello <@{arg.Id}>! Welcome to the discord! Check out <#463470298524811274> to become an Official Laker in the discord and get yourself verified!";
+            string nickname;
+            DateTime join = DateTime.Parse(arg.JoinedAt.ToString());
+            DateTime create = DateTime.Parse(arg.CreatedAt.ToString());
+
+            _client.GetGuild(_guildID).GetTextChannel(335284078796603392).SendMessageAsync(msg);
+
+            string joinString = $"{join.Year}-{join.Month}-{join.Day} {join.Hour}:{join.Minute}:{join.Second}";
+            string createString = $"{create.Year}-{create.Month}-{create.Day} {create.Hour}:{create.Minute}:{create.Second}";
+
+            try
+            {
+                nickname = arg.Nickname;
+            }
+            catch
+            {
+                nickname = arg.Username;
+            }
+
+            _sql.Execute($"EXEC addUser @id='{arg.Id}', @username='{RemoveQuotes(arg.Username)}', @nickname= '{RemoveQuotes(arg.Username)}', @discriminator='{arg.Discriminator}', @joinedAt='{joinString}', @createdAt='{createString}'");
+
+            _client.GetGuild(_guildID).GetTextChannel(502913561094389770).SendMessageAsync($"**{arg.Username}** has joined the discord at {DateTime.Now}.");
+
+            return Task.CompletedTask;
+        }
+
+        private Task _client_MessageDeleted(Cacheable<IMessage, ulong> arg1, ISocketMessageChannel arg2)
+        {
+            int msgCount = int.Parse(_sql.GetSingleValue("SELECT messageCount FROM stats"));
+
+            _sql.Execute($"UPDATE stats SET messageCount = {msgCount - 1}");
+            
+            return Task.CompletedTask;
+        }
+
+        private Task _client_GuildMemberUpdated(SocketGuildUser arg1, SocketGuildUser arg2)
+        {
+            if (arg1.Status == UserStatus.Online || arg1.Status == UserStatus.Idle && arg2.Status == UserStatus.Offline)
+            {
+                DateTime now = DateTime.Now;
+
+                _sql.Execute($"EXEC addOfflineTime @time='{now}', @id='{arg1.Id}'");
+            }
+            else if(arg1.Status == UserStatus.Offline && arg2.Status == UserStatus.Online)
+            {
+                _sql.Execute($"EXEC addOfflineTime @time=NULL, @id='{arg1.Id}'");
+            }
 
             return Task.CompletedTask;
         }
@@ -96,18 +164,34 @@ namespace Louie_Remaster
 
             if (message is null) return;
 
+            //All Checks
+
+            //Add Message Here
+                //Add To User, To Total, and to Channel
+
             int argPos = 0;
 
             string curdatetime = DateTime.Now.ToString("HH:mm:ss");
 
-            //Thread sqlFunctions = new Thread(() => sqlCalls(arg));
-            //sqlFunctions.Start();
-
             //Delete Messages
             if (arg.Author.Username.Contains("Dyno#3861"))
             {
-                var delmsgcount = int.Parse(_sql.GetSingleValue("SELECT msgCount FROM stats"));
-                _sql.Execute($"UPDATE stats SET messageCount ={delmsgcount - 1}");
+                //See What User Send The Message
+            }
+            
+            //Delete Messages in Stream Channel
+            if (arg.Channel.Name.Contains("streaming") && (arg.Author.IsBot == false))
+            {
+                await arg.DeleteAsync();
+            }
+
+
+            //React to message if it Contains SmokeyFish
+            if (arg.Content.ToLower().Contains("smokeyfish"))
+            {
+                IUserMessage usermsg = (IUserMessage)arg;
+                Emote emote = Emote.Parse("<:smokeyfish:481276964850892821>");
+                await usermsg.AddReactionAsync(emote);
             }
 
             if (message.HasCharPrefix('!', ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos))
@@ -127,20 +211,6 @@ namespace Louie_Remaster
                     await Log(curdatetime + " Command     " + message.Content + "     " + message.Author);
                 }
 
-            }
-
-            //Delete Messages in Stream Channel
-            if (arg.Channel.Name.Contains("streaming") && (arg.Author.IsBot == false))
-            {
-                await arg.DeleteAsync();
-            }
-
-            //React to message if it Contains SmokeyFish
-            if (arg.Content.ToLower().Contains("smokeyfish"))
-            {
-                IUserMessage usermsg = (IUserMessage)arg;
-                Emote emote = Emote.Parse("<:smokeyfish:481276964850892821>");
-                await usermsg.AddReactionAsync(emote);
             }
         }
 
@@ -260,7 +330,7 @@ namespace Louie_Remaster
             return userList;
         }
 
-        private List<SocketGuildChannel> GetChannelList()
+        public List<SocketGuildChannel> GetChannelList()
         {
             var _socket = _client.GetGuild(_guildID);
             List<SocketGuildChannel> channelList = _socket.Channels.ToList();
@@ -274,8 +344,30 @@ namespace Louie_Remaster
 
         private void btnSendSetGame_Click(object sender, EventArgs e)
         {
-            string str = "";
+            StringBuilder str = new StringBuilder();
             DataTable data = _sql.GetDataTable("SELECT role FROM roleList");
+
+            str.Append("**Welcome to Set Game! Here you can set your current roles without having to contact an admin!**" + Environment.NewLine);
+            str.Append(Environment.NewLine + "`" + Environment.NewLine);
+            str.Append("To edit your role, enter the command !set ROLE. If you have the role already, it will be removed. If you don't have it, you will be added to the role.");
+            str.Append(Environment.NewLine + "`" + Environment.NewLine + Environment.NewLine);
+            str.Append(":arrow_right: __**Here is a list of roles you can join**__ :arrow_left:");
+            str.Append("```");
+
+            foreach(DataRow row in data.Rows)
+            {
+                str.Append(row["role"].ToString() + Environment.NewLine);
+            }
+
+            str.Append("```");
+
+            _client.GetGuild(_guildID).GetTextChannel(537454782110236682).SendMessageAsync(str.ToString());
+        }
+
+        private void btnSendMessage_Click(object sender, EventArgs e)
+        {
+            SendMessage send = new SendMessage(GetChannelList(), _client, _guildID);
+            send.Show();
         }
     }
 }

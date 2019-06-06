@@ -111,6 +111,7 @@
             // 
             // btnGetRoleList
             // 
+            this.btnGetRoleList.Enabled = false;
             this.btnGetRoleList.Location = new System.Drawing.Point(153, 27);
             this.btnGetRoleList.Name = "btnGetRoleList";
             this.btnGetRoleList.Size = new System.Drawing.Size(141, 34);
@@ -136,6 +137,7 @@
             this.btnSendMessage.TabIndex = 1;
             this.btnSendMessage.Text = "Send Message";
             this.btnSendMessage.UseVisualStyleBackColor = true;
+            this.btnSendMessage.Click += new System.EventHandler(this.btnSendMessage_Click);
             // 
             // lblVersion
             // 
