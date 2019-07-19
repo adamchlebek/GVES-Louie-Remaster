@@ -251,6 +251,10 @@ namespace Louie_Remaster
                 }
                 else
                 {
+                    if (message.Content.Contains("!add")) {
+                        SetGameMessage();
+                    }
+
                     await message.DeleteAsync();
                     await Log(curdatetime + " Command     " + message.Content + "     " + message.Author);
                 }
@@ -409,6 +413,27 @@ namespace Louie_Remaster
             return val.Replace("'", "");
         }
 
+        public void SetGameMessage() {
+                        StringBuilder str = new StringBuilder();
+            DataTable data = _sql.GetDataTable("SELECT role FROM roleList");
+
+            str.Append("**Welcome to Set Game! Here you can set your current roles without having to contact an admin!**" + Environment.NewLine);
+            str.Append(Environment.NewLine + "`" + Environment.NewLine);
+            str.Append("To edit your role, enter the command !set ROLE. If you have the role already, it will be removed. If you don't have it, you will be added to the role.");
+            str.Append(Environment.NewLine + "`" + Environment.NewLine + Environment.NewLine);
+            str.Append(":arrow_right: __**Here is a list of roles you can join**__ :arrow_left:");
+            str.Append("```");
+
+            foreach(DataRow row in data.Rows)
+            {
+                str.Append(row["role"].ToString() + Environment.NewLine);
+            }
+
+            str.Append("```");
+
+            _client.GetGuild(_guildID).GetTextChannel(601618821857542164).SendMessageAsync(str.ToString());
+        }
+
         private void btnSendSetGame_Click(object sender, EventArgs e)
         {
             StringBuilder str = new StringBuilder();
@@ -428,7 +453,7 @@ namespace Louie_Remaster
 
             str.Append("```");
 
-            _client.GetGuild(_guildID).GetTextChannel(537454782110236682).SendMessageAsync(str.ToString());
+            _client.GetGuild(_guildID).GetTextChannel(601618821857542164).SendMessageAsync(str.ToString());
         }
 
         private void btnSendMessage_Click(object sender, EventArgs e)

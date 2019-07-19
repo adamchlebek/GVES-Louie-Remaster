@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -29,6 +30,39 @@ namespace Louie_Remaster
         public async Task Help()
         {
             await ReplyAsync("**Please Refer to the link below for help.**" + Environment.NewLine + Environment.NewLine + "https://goo.gl/g1jT4V");
+        }
+
+        [Command("add")]
+        [Remarks("!add")]
+        [Summary("Adds a generated role to the #set-game list.")]
+        public async Task AddRole([Remainder] string info)
+        {
+            DiscordSocketClient _client = new DiscordSocketClient();
+
+            var user = Context.User as SocketGuildUser;
+
+            if (!user.GuildPermissions.Administrator)
+            {
+                await ReplyAsync("**Please contact an admin to add a role to the list!**");
+                return;
+            }
+
+            List<string> infoList = info.Split(',').ToList<string>(); ;
+
+            string role = infoList[0].Trim().Substring(3, infoList[0].Trim().Length - 4);
+            string name = infoList[1].Trim().ToUpper();
+
+            sql.Setup();
+
+            try {
+                sql.Execute($"INSERT INTO roleList (roleID, role) VALUES ('{role}', '{name}')");
+            } catch {
+                sql.Close();
+                await ReplyAsync("This role is already on the list!");
+                return;
+            }
+
+            await ReplyAsync($"{name} has been added to the #set-game list!");
         }
 
         [Command("stream")]
