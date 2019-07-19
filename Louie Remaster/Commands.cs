@@ -83,7 +83,7 @@ namespace Louie_Remaster
         [Summary("Outputs current count of users.")]
         public async Task UserCount()
         {
-            await ReplyAsync("There are currently **" + Context.Client.GetGuild(347170618250231809).Users.Count + "** users in this discord!");
+            await ReplyAsync("There are currently **" + Context.Client.GetGuild(335284078796603392).Users.Count + "** users in this discord!");
         }
 
         [Command("mydiscord")]
