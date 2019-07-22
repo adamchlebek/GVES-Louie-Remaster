@@ -146,7 +146,7 @@ namespace Louie_Remaster
         [Summary("Sets a new role to the user")]
         public async Task SetRole([Remainder] string game)
         {
-            if (Context.Message.Content.Contains("set") && Context.Channel.Id == 537454782110236682)
+            if (Context.Message.Content.Contains("set") && Context.Channel.Id == 601618821857542164)
             {
                 sql.Setup();
 
